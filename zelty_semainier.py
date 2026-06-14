@@ -58,11 +58,12 @@ def get_all_dish_ids(semainier: dict) -> set[int]:
     return ids
 
 
-def set_dish_status(api_key: str, dish_id: int, active: bool, dry_run: bool) -> None:
-    """Active (visible=True) ou désactive (visible=False) un plat via l'API Zelty."""
-    action = "ACTIVER" if active else "DÉSACTIVER"
+def upsert_dishes(api_key: str, payload: list[dict], dry_run: bool) -> None:
+    """Envoie un seul POST avec tous les plats à mettre à jour."""
     if dry_run:
-        print(f"  [dry-run] {action} plat {dish_id}")
+        for item in payload:
+            action = "ACTIVER" if item["visible"] else "DÉSACTIVER"
+            print(f"  [dry-run] {action} plat {item['id']}")
         return
 
     resp = requests.post(
@@ -71,14 +72,15 @@ def set_dish_status(api_key: str, dish_id: int, active: bool, dry_run: bool) -> 
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
-        json=[{"id": dish_id, "visible": active}],
+        json=payload,
     )
     resp.raise_for_status()
     data = resp.json()
     if data.get("errno", 0) != 0:
-        print(f"  [ERREUR API] plat {dish_id} : errno={data['errno']}", file=sys.stderr)
+        print(f"  [ERREUR API] errno={data['errno']}", file=sys.stderr)
     else:
-        print(f"  OK : plat {dish_id} {'activé' if active else 'désactivé'}")
+        for item in payload:
+            print(f"  OK : plat {item['id']} {'activé' if item['visible'] else 'désactivé'}")
 
 
 def main():
@@ -105,12 +107,11 @@ def main():
     print(f"Plats à désactiver: {sorted(inactive_ids)}")
     print()
 
-    print("Désactivation...")
-    for dish_id in sorted(inactive_ids):
-        set_dish_status(args.api_key, dish_id, active=False, dry_run=args.dry_run)
+    payload = [{"id": dish_id, "visible": False} for dish_id in sorted(inactive_ids)]
+    payload.append({"id": active_id, "visible": True})
 
-    print("Activation...")
-    set_dish_status(args.api_key, active_id, active=True, dry_run=args.dry_run)
+    print("Envoi en un seul appel API...")
+    upsert_dishes(args.api_key, payload, dry_run=args.dry_run)
 
     print("\nTerminé.")
 
