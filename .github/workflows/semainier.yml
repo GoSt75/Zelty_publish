@@ -1,0 +1,24 @@
+name: Zelty Semainier
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # tous les jours à 5h00 UTC (= 7h Paris été)
+  workflow_dispatch:        # déclenchement manuel depuis GitHub
+
+jobs:
+  update-dishes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openpyxl requests -q
+
+      - name: Run semainier
+        env:
+          ZELTY_API_KEY: ${{ secrets.ZELTY_API_KEY }}
+        run: python zelty_semainier.py --api-key "$ZELTY_API_KEY"
