@@ -66,6 +66,9 @@ def upsert_dishes(api_key: str, payload: list[dict], dry_run: bool) -> None:
             print(f"  [dry-run] {action} plat {item['id']}")
         return
 
+    import json
+    print(f"  Payload envoyé : {json.dumps(payload, ensure_ascii=False)}")
+
     resp = requests.post(
         f"{API_BASE}/catalog/dishes",
         headers={
@@ -74,6 +77,7 @@ def upsert_dishes(api_key: str, payload: list[dict], dry_run: bool) -> None:
         },
         json=payload,
     )
+    print(f"  HTTP {resp.status_code} : {resp.text[:500]}")
     resp.raise_for_status()
     data = resp.json()
     if data.get("errno", 0) != 0:
