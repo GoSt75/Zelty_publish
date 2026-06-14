@@ -6,7 +6,8 @@ on:
   workflow_dispatch:        # déclenchement manuel depuis GitHub
 
 jobs:
-  update-dishes:
+  semainier:
+    name: Activation / désactivation des plats
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,3 +23,26 @@ jobs:
         env:
           ZELTY_API_KEY: ${{ secrets.ZELTY_API_KEY }}
         run: python zelty_semainier.py --api-key "$ZELTY_API_KEY"
+
+  publish-catalog:
+    name: Publication du catalogue Plateforme
+    runs-on: ubuntu-latest
+    needs: semainier          # ne s'exécute que si semainier réussit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install selenium -q
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Publish catalogue Plateforme
+        env:
+          ZELTY_LOGIN:    ${{ secrets.ZELTY_LOGIN }}
+          ZELTY_PASSWORD: ${{ secrets.ZELTY_PASSWORD }}
+        run: python zelty_publish_catalog.py
